@@ -1,12 +1,14 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, ArrowLeft } from "react-bootstrap-icons";
 
 const Q1 = () => {
-  const [output, setOutput] = useState([]);
+  const [output, setOutput] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [timer, setTimer] = useState(0);
   const eventSourceRef = useRef(null);
   const navigate = useNavigate();
+  const timerRef = useRef(null);
 
   const questionText = `
 1. A prime number is 12345678910987654321. Here n is 10. Find the next number
@@ -42,16 +44,22 @@ def kaprekar_like_prime_stream():
 
   const handleShowOutput = () => {
     setLoading(true);
-    setOutput([]);
+    setOutput(null);
+    setTimer(0);
+
+    // Start timer
+    timerRef.current = setInterval(() => setTimer((prev) => prev + 1), 1000);
+
     eventSourceRef.current = new EventSource("http://localhost:5001/q1");
 
     eventSourceRef.current.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
-        setOutput((prev) => [...prev, data]);
         if (data.found) {
-          eventSourceRef.current.close();
+          setOutput(data);
           setLoading(false);
+          clearInterval(timerRef.current);
+          eventSourceRef.current.close();
         }
       } catch (err) {
         console.error("Error parsing event data", err);
@@ -60,15 +68,24 @@ def kaprekar_like_prime_stream():
 
     eventSourceRef.current.onerror = (err) => {
       console.error("EventSource failed:", err);
-      eventSourceRef.current.close();
       setLoading(false);
+      clearInterval(timerRef.current);
+      eventSourceRef.current.close();
     };
   };
+
+  useEffect(() => {
+    return () => {
+      // Clean up EventSource and timer if component unmounts
+      if (eventSourceRef.current) eventSourceRef.current.close();
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   return (
     <div className="container my-5">
       <h2 className="text-center mb-4 fw-bold">Q1: Kaprekar–Like Prime</h2>
-      
+
       {/* Question */}
       <div className="question-box p-4 mb-4">{questionText}</div>
 
@@ -81,23 +98,21 @@ def kaprekar_like_prime_stream():
       {/* Show Output Button */}
       <div className="text-center mb-4">
         <button className="btn-show-output" onClick={handleShowOutput} disabled={loading}>
-          {loading ? "Loading..." : "Show Output"}
+          {loading ? "Searching..." : "Show Output"}
         </button>
       </div>
 
       {/* Output */}
-      <div className="output-box p-3 mb-4">
-        {output.length === 0 && !loading && <p>Click "Show Output" to fetch the result.</p>}
-        {output.map((item, index) => (
-          <div key={index} className="mb-2">
-            {item.current_n && <p>Checking n = {item.current_n} (runtime: {item.runtime_seconds}s)</p>}
-            {item.found && (
-              <p>
-                ✅ Found! n = {item.n}, Kaprekar-like prime: {item.kaprekar_number} (runtime: {item.runtime_seconds}s)
-              </p>
-            )}
+      <div className="output-box p-3 mb-4 text-center">
+        {loading && <p>⏱ Time elapsed: {timer}s</p>}
+        {output && (
+          <div>
+            <p>✅ Found! n = {output.n}, Kaprekar-like prime:</p>
+            <div className="scrollable-number">{output.kaprekar_number}</div>
+            <p>Runtime: {output.runtime_seconds}s</p>
           </div>
-        ))}
+        )}
+        {!loading && !output && <p>Click "Show Output" to start computation.</p>}
       </div>
 
       {/* Navigation Buttons */}
@@ -155,6 +170,16 @@ def kaprekar_like_prime_stream():
           transform: translateY(-3px) scale(1.05);
           background: linear-gradient(135deg, #d0f0ff, #f8f9fa);
           box-shadow: 0 12px 20px rgba(0, 0, 0, 0.25);
+        }
+        .scrollable-number {
+          max-height: 200px;
+          overflow: auto;
+          word-break: break-all;
+          background: #f0faff;
+          padding: 10px;
+          border-radius: 15px;
+          border: 1px solid #007bff20;
+          margin: 10px 0;
         }
       `}</style>
     </div>
