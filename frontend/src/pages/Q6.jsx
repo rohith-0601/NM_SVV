@@ -71,7 +71,7 @@ def perfect_numbers():
       <div className="output-box p-3 mb-4">
         {!output && !loading && <p>Click "Show Output" to fetch the result.</p>}
         {output && (
-          <div>
+          <div className="output-wrap">
             <p>Perfect Numbers:</p>
             <ul>
               {output.perfect_numbers.map((item, index) => (
@@ -107,6 +107,14 @@ def perfect_numbers():
           padding: 15px;
           border-radius: 15px;
           overflow-x: auto;
+        }
+        .output-wrap {
+          max-height: 300px;
+          overflow-y: auto;
+          word-break: break-all;
+          padding: 10px;
+          background: #f7feff;
+          border-radius: 15px;
         }
         .btn-show-output {
           padding: 10px 20px;

@@ -65,7 +65,7 @@ def primes_between_mersenne_squares():
       <div className="output-box p-3 mb-4">
         {!output && !loading && <p>Click "Show Output" to fetch the result.</p>}
         {output && (
-          <div>
+          <div className="output-wrap">
             <p>Primes between squares:</p>
             <ul>
               {output.primes.map((item, index) => (
@@ -99,6 +99,14 @@ def primes_between_mersenne_squares():
           padding: 15px;
           border-radius: 15px;
           overflow-x: auto;
+        }
+        .output-wrap {
+          max-height: 300px;
+          overflow-y: auto;
+          word-break: break-all;
+          padding: 10px;
+          background: #f7feff;
+          border-radius: 15px;
         }
         .btn-show-output {
           padding: 10px 20px;
