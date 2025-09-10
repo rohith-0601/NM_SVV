@@ -56,7 +56,7 @@ def goldbach_pairs():
 
       {/* Python Code */}
       <div className="code-box p-3 mb-4">
-        <h5 className="mb-2">Python Code (controllers.py)</h5>
+        <h5 className="mb-2">Python Code </h5>
         <pre>{pythonCode}</pre>
       </div>
 
