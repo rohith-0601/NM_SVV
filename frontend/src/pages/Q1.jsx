@@ -6,6 +6,8 @@ const Q1 = () => {
   const [output, setOutput] = useState(null);
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(0);
+  const [start, setStart] = useState(1000); // default values
+  const [end, setEnd] = useState(3000);
   const eventSourceRef = useRef(null);
   const navigate = useNavigate();
   const timerRef = useRef(null);
@@ -17,12 +19,6 @@ discovered by an Indian.
 `;
 
   const pythonCode = `
-import time
-import gmpy2
-from gmpy2 import mpz, is_prime
-import sys
-sys.set_int_max_str_digits(20000)
-
 def kaprekar_number(n: int) -> int:
     num = 0
     for i in range(1, n + 1):
@@ -31,18 +27,23 @@ def kaprekar_number(n: int) -> int:
         num = num * (10 ** len(str(i))) + i
     return num
 
-def kaprekar_like_prime_stream():
+def kaprekar_like_prime_stream(start=1000, end=3000):
     start_time = time.time()
-    for n in range(1000, 3001):
+    for n in range(start, end + 1):
         candidate = kaprekar_number(n)
         elapsed = round(time.time() - start_time, 2)
-        yield f"data: {{\\"current_n\\": {n}, \\"runtime_seconds\\": {elapsed}}}\\n\\n"
+        yield f"data: {{\"current_n\": {n}, \"runtime_seconds\": {elapsed}}}\n\n"
         if gmpy2.is_prime(candidate):
-            yield f"data: {{\\"found\\": true, \\"n\\": {n}, \\"kaprekar_number\\": \\"{candidate}\\", \\"runtime_seconds\\": {elapsed}}}\\n\\n"
+            yield f"data: {{\"found\": true, \"n\": {n}, \"kaprekar_number\": \"{candidate}\", \"runtime_seconds\": {elapsed}}}\n\n"
             break
 `;
 
   const handleShowOutput = () => {
+    if (!start || !end) {
+      alert("Please enter start and end values.");
+      return;
+    }
+
     setLoading(true);
     setOutput(null);
     setTimer(0);
@@ -50,7 +51,9 @@ def kaprekar_like_prime_stream():
     // Start timer
     timerRef.current = setInterval(() => setTimer((prev) => prev + 1), 1000);
 
-    eventSourceRef.current = new EventSource("http://localhost:5001/q1");
+    // Pass inputs to backend route
+    const url = `http://localhost:5001/q1?start=${start}&end=${end}`;
+    eventSourceRef.current = new EventSource(url);
 
     eventSourceRef.current.onmessage = (e) => {
       try {
@@ -76,7 +79,6 @@ def kaprekar_like_prime_stream():
 
   useEffect(() => {
     return () => {
-      // Clean up EventSource and timer if component unmounts
       if (eventSourceRef.current) eventSourceRef.current.close();
       if (timerRef.current) clearInterval(timerRef.current);
     };
@@ -91,13 +93,35 @@ def kaprekar_like_prime_stream():
 
       {/* Python Code */}
       <div className="code-box p-3 mb-4">
-        <h5 className="mb-2">Python Code </h5>
+        <h5 className="mb-2">Backend Code</h5>
         <pre>{pythonCode}</pre>
+      </div>
+
+      {/* Input Fields */}
+      <div className="d-flex justify-content-center gap-3 mb-4">
+        <input
+          type="number"
+          value={start}
+          onChange={(e) => setStart(e.target.value)}
+          placeholder="Start (default 1000)"
+          className="form-control w-25"
+        />
+        <input
+          type="number"
+          value={end}
+          onChange={(e) => setEnd(e.target.value)}
+          placeholder="End (default 3000)"
+          className="form-control w-25"
+        />
       </div>
 
       {/* Show Output Button */}
       <div className="text-center mb-4">
-        <button className="btn-show-output" onClick={handleShowOutput} disabled={loading}>
+        <button
+          className="btn-show-output"
+          onClick={handleShowOutput}
+          disabled={loading}
+        >
           {loading ? "Searching..." : "Show Output"}
         </button>
       </div>
@@ -112,7 +136,9 @@ def kaprekar_like_prime_stream():
             <p>Runtime: {output.runtime_seconds}s</p>
           </div>
         )}
-        {!loading && !output && <p>Click "Show Output" to start computation.</p>}
+        {!loading && !output && (
+          <p>Enter values and click "Show Output" to start computation.</p>
+        )}
       </div>
 
       {/* Navigation Buttons */}
@@ -127,7 +153,9 @@ def kaprekar_like_prime_stream():
 
       {/* Styles */}
       <style jsx="true">{`
-        .question-box, .code-box, .output-box {
+        .question-box,
+        .code-box,
+        .output-box {
           border-radius: 25px;
           background: linear-gradient(135deg, #e0f7fa, #ffffff);
           box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);

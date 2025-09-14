@@ -6,21 +6,23 @@ import { ArrowRight, ArrowLeft } from "react-bootstrap-icons";
 const Q2 = () => {
   const [output, setOutput] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [start, setStart] = useState(2);
+  const [end, setEnd] = useState(1040);
   const navigate = useNavigate();
 
   const questionText = `
 2. 11 is prime, 111 is not prime. We use the notation, 1N means N ones. 
 For example, 17 means seven ones: 1111111. 1N is represented by (10^N - 1)/9. 
 If N is prime, 1N might be prime. If N is not prime, 1N cannot be prime. 
-Thus we have to check only for N being prime. Determine the 5 primes between N=2 and N=1040.
+Thus we have to check only for N being prime. Determine the repunit primes between a user-given range.
 `;
 
   const pythonCode = `
 from sympy import isprime, primerange
 
-def repunit_primes(limit=1040):
+def repunit_primes(start=2, end=1040):
     results = []
-    for n in primerange(2, limit + 1):
+    for n in primerange(start, end + 1):
         num = (10**n - 1) // 9
         if isprime(num):
             results.append({"n": n, "repunit": str(num)})
@@ -31,7 +33,9 @@ def repunit_primes(limit=1040):
     setLoading(true);
     setOutput(null);
     try {
-      const res = await axios.get("http://localhost:5001/q2");
+      const res = await axios.get("http://localhost:5001/q2", {
+        params: { start, end },
+      });
       setOutput(res.data);
     } catch (err) {
       console.error(err);
@@ -52,19 +56,39 @@ def repunit_primes(limit=1040):
         <pre>{pythonCode}</pre>
       </div>
 
-      {/* Show Output Button */}
+      {/* Input fields + Show Output */}
       <div className="text-center mb-4">
-        <button className="btn-show-output" onClick={handleShowOutput} disabled={loading}>
+        <input
+          type="number"
+          value={start}
+          onChange={(e) => setStart(e.target.value)}
+          placeholder="Start"
+          className="form-control d-inline w-25 me-2"
+        />
+        <input
+          type="number"
+          value={end}
+          onChange={(e) => setEnd(e.target.value)}
+          placeholder="End"
+          className="form-control d-inline w-25 me-2"
+        />
+        <button
+          className="btn-show-output"
+          onClick={handleShowOutput}
+          disabled={loading}
+        >
           {loading ? "Loading..." : "Show Output"}
         </button>
       </div>
 
       {/* Output */}
       <div className="output-box p-3 mb-4">
-        {!output && !loading && <p>Click "Show Output" to fetch the result.</p>}
+        {!output && !loading && <p>Enter range and click "Show Output".</p>}
         {output && (
           <div className="output-wrap">
-            <p>Repunit Primes:</p>
+            <p>
+              Repunit Primes between {start} and {end}:
+            </p>
             <ul>
               {output.repunit_primes.map((item, index) => (
                 <li key={index}>
@@ -87,7 +111,7 @@ def repunit_primes(limit=1040):
         </button>
       </div>
 
-      {/* Styles */}
+      {/* Styles remain unchanged */}
       <style jsx="true">{`
         .question-box, .code-box, .output-box {
           border-radius: 25px;

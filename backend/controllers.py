@@ -2,8 +2,6 @@ import time
 import gmpy2
 from gmpy2 import mpz, next_prime, is_prime
 from sympy import isprime, primerange, nextprime
-
-# Increase digit handling for very large numbers
 import sys
 sys.set_int_max_str_digits(20000)
 
@@ -17,9 +15,9 @@ def kaprekar_number(n: int) -> int:
         num = num * (10 ** len(str(i))) + i
     return num
 
-def kaprekar_like_prime_stream():
+def kaprekar_like_prime_stream(start=1000, end=3000):
     start_time = time.time()
-    for n in range(1000, 3001):
+    for n in range(start, end + 1):
         candidate = kaprekar_number(n)
         elapsed = round(time.time() - start_time, 2)
         yield f"data: {{\"current_n\": {n}, \"runtime_seconds\": {elapsed}}}\n\n"
@@ -29,19 +27,18 @@ def kaprekar_like_prime_stream():
 
 
 # -------- Q2: Repunit Primes --------
-def repunit_primes(limit=1040):
-    start_time = time.time()
+def repunit_primes(start=2, end=1040):
     results = []
-    for n in primerange(2, limit + 1):
+    start_time = time.time()
+    for n in primerange(start, end + 1):
         num = (10**n - 1) // 9
         if isprime(num):
             results.append({"n": n, "repunit": str(num)})
     elapsed = round(time.time() - start_time, 2)
     return {"repunit_primes": results, "runtime_seconds": elapsed}
 
-
 # -------- Q3: Mersenne Primes --------
-def mersenne_primes_in_range(start=2201, end=2299):
+def mersenne_primes_in_range(start=2200, end=2300):
     start_time = time.time()
     results = []
     for p in primerange(start, end + 1):
@@ -52,22 +49,23 @@ def mersenne_primes_in_range(start=2201, end=2299):
     return {"mersenne_primes": results, "runtime_seconds": elapsed}
 
 
-# -------- Q4: First 4 Primes Between Two Mersenne Squares --------
-def primes_between_mersenne_squares():
+# -------- Q4: First N Primes Between Two Mersenne Squares --------
+def primes_between_mersenne_squares(p1=2203, p2=2281, count=5):
     start_time = time.time()
-    M_n1 = (2) ** 2203 - 1
-    M_n2 = (2) ** 2281 - 1
+    M_n1 = (2) ** p1 - 1
+    M_n2 = (2) ** p2 - 1
     primes = []
     num = next_prime(mpz(M_n1) ** 2)
-    while num < mpz(M_n2) ** 2 and len(primes) < 4:
+    while num < mpz(M_n2) ** 2 and len(primes) < count:
         primes.append(str(num))
         num = next_prime(num)
     elapsed = round(time.time() - start_time, 2)
     return {"primes": primes, "runtime_seconds": elapsed}
 
 
-# -------- Q5: Palindromic Prime (50+ digits) --------
+# -------- Q5: Palindromic Prime --------
 def generate_palindrome(length):
+    """Generate odd-length palindromes of a given length."""
     half = (length + 1) // 2
     start = 10 ** (half - 1)
     end = 10 ** half
@@ -76,56 +74,78 @@ def generate_palindrome(length):
         pal = s + s[-2::-1]  # odd-length palindrome
         yield mpz(pal)
 
-def palindromic_prime(min_digits=50):
+def palindromic_prime(min_digits=50, max_digits=55):
+    """
+    Try to find a palindromic prime between min_digits and max_digits.
+    If not found, return None.
+    """
     start_time = time.time()
     length = min_digits if min_digits % 2 == 1 else min_digits + 1
-    while True:
+    while length <= max_digits:
         for pal in generate_palindrome(length):
             if is_prime(pal):
                 elapsed = round(time.time() - start_time, 2)
-                return {"palindromic_prime": str(pal), "digits": len(str(pal)), "runtime_seconds": elapsed}
-        length += 2
-
+                return {
+                    "palindromic_prime": str(pal),
+                    "digits": len(str(pal)),
+                    "runtime_seconds": elapsed
+                }
+        length += 2  # try next odd length
+    # If no palindromic prime found
+    elapsed = round(time.time() - start_time, 2)
+    return {
+        "palindromic_prime": None,
+        "digits": None,
+        "runtime_seconds": elapsed,
+        "message": f"No palindromic prime found for {min_digits}-{max_digits} digits"
+    }
 
 # -------- Q6: Perfect Numbers from Mersenne Primes --------
-def perfect_numbers():
+def perfect_numbers(p_values=[2203, 2281]):
     start_time = time.time()
-    mersennes = [
-        {"p": 2203, "mersenne_number": str(mpz(2)**2203 - 1)},
-        {"p": 2281, "mersenne_number": str(mpz(2)**2281 - 1)}
-    ]
     perfect_numbers = []
-    for item in mersennes:
-        p = item["p"]
-        M_p = mpz(item["mersenne_number"])
+    for p in p_values:
+        M_p = mpz(2) ** p - 1
         N = (1 << (p - 1)) * M_p
         perfect_numbers.append({"p": p, "perfect_number": str(N)})
     elapsed = round(time.time() - start_time, 2)
     return {"perfect_numbers": perfect_numbers, "runtime_seconds": elapsed}
 
 
-# -------- Q7: Goldbach’s Conjecture (50-digit Evens) --------
-def goldbach_pairs():
-    start_time = time.time()
+# -------- Q7: Goldbach’s Conjecture --------
+from sympy import isprime, nextprime
+import time
 
-    def goldbach_pair(N: int):
-        assert N % 2 == 0 and N > 2
-        p = 2
-        while p <= N // 2:
-            q = N - p
-            if isprime(p) and isprime(q):
-                return p, q
-            p = nextprime(p)
+def goldbach_pair(N: int):
+    """Return two primes whose sum is N."""
+    if N <= 2 or N % 2 != 0:
         return None
+    p = 2
+    while p <= N // 2:
+        q = N - p
+        if isprime(p) and isprime(q):
+            return [str(p), str(q)]  # always return as strings
+        if p == 2:
+            p = 3
+        else:
+            p = nextprime(p)
+    return None
 
-    N1 = 10 ** 49 + 12
-    N2 = 10 ** 50 + 88
-    pair1 = goldbach_pair(N1)
-    pair2 = goldbach_pair(N2)
-
-    elapsed = round(time.time() - start_time, 2)
+def goldbach_pairs(N_values):
+    """Accepts list of numbers (as strings) and returns Goldbach pairs."""
+    start_time = time.time()
+    pairs = []
+    for N_str in N_values:
+        try:
+            N = int(N_str)
+            pair = goldbach_pair(N)
+        except Exception as e:
+            print(f"Error with {N_str}: {e}")  # debug
+            pair = None
+        pairs.append(pair)
+    elapsed = round(time.time() - start_time, 5)
     return {
-        "numbers": [str(N1), str(N2)],
-        "pairs": [[str(pair1[0]), str(pair1[1])], [str(pair2[0]), str(pair2[1])]],
+        "numbers": N_values,
+        "pairs": pairs,
         "runtime_seconds": elapsed
     }

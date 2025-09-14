@@ -4,6 +4,7 @@ import axios from "axios";
 import { ArrowRight, ArrowLeft } from "react-bootstrap-icons";
 
 const Q5 = () => {
+  const [digits, setDigits] = useState(null);
   const [output, setOutput] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -13,10 +14,12 @@ const Q5 = () => {
 simpler ones are 11 and 122333221. More interesting ones are
 1223334444555554444333221 and 12233355555333221. The largest found so far is
 10^1888529 − 10^944264 − 1 which has 1,888,529 digits. 
-Find a palindromic prime that has at least 50 digits.
+Find a palindromic prime that has at least N digits (user-defined).
 `;
 
   const pythonCode = `
+# controllers.py
+import time
 from gmpy2 import mpz, is_prime
 
 def generate_palindrome(length):
@@ -29,19 +32,28 @@ def generate_palindrome(length):
         yield mpz(pal)
 
 def palindromic_prime(min_digits=50):
+    start_time = time.time()
     length = min_digits if min_digits % 2 == 1 else min_digits + 1
     while True:
         for pal in generate_palindrome(length):
             if is_prime(pal):
-                return str(pal)
+                elapsed = round(time.time() - start_time, 2)
+                return {
+                    "palindromic_prime": str(pal),
+                    "digits": len(str(pal)),
+                    "runtime_seconds": elapsed
+                }
         length += 2
+
 `;
 
   const handleShowOutput = async () => {
     setLoading(true);
     setOutput(null);
     try {
-      const res = await axios.get("http://localhost:5001/q5");
+      const res = await axios.get("http://localhost:5001/q5", {
+        params: { digits },
+      });
       setOutput(res.data);
     } catch (err) {
       console.error(err);
@@ -62,21 +74,43 @@ def palindromic_prime(min_digits=50):
         <pre>{pythonCode}</pre>
       </div>
 
+      {/* Input field for digits */}
+      <div className="text-center mb-3">
+        <label className="fw-bold me-2">Minimum Digits:</label>
+        <input
+          type="number"
+          min="2"
+          value={digits}
+          onChange={(e) => setDigits(Number(e.target.value))}
+          className="form-control d-inline-block w-auto"
+        />
+      </div>
+
       {/* Show Output Button */}
       <div className="text-center mb-4">
-        <button className="btn-show-output" onClick={handleShowOutput} disabled={loading}>
+        <button
+          className="btn-show-output"
+          onClick={handleShowOutput}
+          disabled={loading}
+        >
           {loading ? "Loading..." : "Show Output"}
         </button>
       </div>
 
       {/* Output */}
       <div className="output-box p-3 mb-4">
-        {!output && !loading && <p>Click "Show Output" to fetch the result.</p>}
+        {!output && !loading && <p>Enter digits and click "Show Output".</p>}
         {output && (
           <div>
-            <p>Palindromic Prime:</p>
-            <p>{output.palindromic_prime}</p>
-            <p>Digits: {output.digits}</p>
+            {output.palindromic_prime ? (
+              <>
+                <p>Palindromic Prime:</p>
+                <p>{output.palindromic_prime}</p>
+                <p>Digits: {output.digits}</p>
+              </>
+            ) : (
+              <p>{output.message}</p>
+            )}
             <p>Runtime: {output.runtime_seconds}s</p>
           </div>
         )}
@@ -92,9 +126,11 @@ def palindromic_prime(min_digits=50):
         </button>
       </div>
 
-      {/* Styles */}
+      {/* Styles (unchanged) */}
       <style jsx="true">{`
-        .question-box, .code-box, .output-box {
+        .question-box,
+        .code-box,
+        .output-box {
           border-radius: 25px;
           background: linear-gradient(135deg, #e0f7fa, #ffffff);
           box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);

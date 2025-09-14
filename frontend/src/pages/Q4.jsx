@@ -6,6 +6,9 @@ import { ArrowRight, ArrowLeft } from "react-bootstrap-icons";
 const Q4 = () => {
   const [output, setOutput] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [p1, setP1] = useState(2203);
+  const [p2, setP2] = useState(2281);
+  const [count, setCount] = useState(4);
   const navigate = useNavigate();
 
   const questionText = `
@@ -18,12 +21,12 @@ four prime numbers between the squares of those numbers.
   const pythonCode = `
 from gmpy2 import mpz, next_prime
 
-def primes_between_mersenne_squares():
-    M_n1 = 2**2203 - 1
-    M_n2 = 2**2281 - 1
+def primes_between_mersenne_squares(p1=2203, p2=2281, count=4):
+    M_n1 = 2**p1 - 1
+    M_n2 = 2**p2 - 1
     primes = []
     num = next_prime(mpz(M_n1)**2)
-    while num < mpz(M_n2)**2 and len(primes) < 4:
+    while num < mpz(M_n2)**2 and len(primes) < count:
         primes.append(str(num))
         num = next_prime(num)
     return primes
@@ -33,7 +36,9 @@ def primes_between_mersenne_squares():
     setLoading(true);
     setOutput(null);
     try {
-      const res = await axios.get("http://localhost:5001/q4");
+      const res = await axios.get("http://localhost:5001/q4", {
+        params: { p1, p2},
+      });
       setOutput(res.data);
     } catch (err) {
       console.error(err);
@@ -52,6 +57,25 @@ def primes_between_mersenne_squares():
       <div className="code-box p-3 mb-4">
         <h5 className="mb-2">Python Code </h5>
         <pre>{pythonCode}</pre>
+      </div>
+
+      {/* Input Fields */}
+      <div className="mb-4">
+        <label className="form-label me-2">p1:</label>
+        <input
+          type="number"
+          value={p1}
+          onChange={(e) => setP1(e.target.value)}
+          className="form-control d-inline-block w-auto me-3"
+        />
+        <label className="form-label me-2">p2:</label>
+        <input
+          type="number"
+          value={p2}
+          onChange={(e) => setP2(e.target.value)}
+          className="form-control d-inline-block w-auto me-3"
+        />
+        
       </div>
 
       {/* Show Output Button */}

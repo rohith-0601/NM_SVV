@@ -6,6 +6,8 @@ import { ArrowRight, ArrowLeft } from "react-bootstrap-icons";
 const Q3 = () => {
   const [output, setOutput] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [start, setStart] = useState(2201);
+  const [end, setEnd] = useState(2299);
   const navigate = useNavigate();
 
   const questionText = `
@@ -29,13 +31,27 @@ def mersenne_primes_in_range(start=2201, end=2299):
 `;
 
   const handleShowOutput = async () => {
+    // basic validation
+    if (!Number.isInteger(Number(start)) || !Number.isInteger(Number(end))) {
+      alert("Start and End must be integers.");
+      return;
+    }
+    if (Number(start) > Number(end)) {
+      alert("Start must be <= End.");
+      return;
+    }
+
     setLoading(true);
     setOutput(null);
     try {
-      const res = await axios.get("http://localhost:5001/q3");
+      // Use GET with query params so it matches your Flask route (request.args.get)
+      const res = await axios.get("http://localhost:5001/q3", {
+        params: { start: Number(start), end: Number(end) },
+      });
       setOutput(res.data);
     } catch (err) {
-      console.error(err);
+      console.error("Request failed:", err);
+      alert("Failed to fetch — check backend logs & CORS. See console for details.");
     }
     setLoading(false);
   };
@@ -53,9 +69,31 @@ def mersenne_primes_in_range(start=2201, end=2299):
         <pre>{pythonCode}</pre>
       </div>
 
+      {/* Input fields */}
+      <div className="text-center mb-3">
+        <label className="me-2">Start (p):</label>
+        <input
+          type="number"
+          value={start}
+          onChange={(e) => setStart(e.target.value)}
+          className="form-control d-inline-block w-auto me-3"
+        />
+        <label className="me-2">End (p):</label>
+        <input
+          type="number"
+          value={end}
+          onChange={(e) => setEnd(e.target.value)}
+          className="form-control d-inline-block w-auto"
+        />
+      </div>
+
       {/* Show Output Button */}
       <div className="text-center mb-4">
-        <button className="btn-show-output" onClick={handleShowOutput} disabled={loading}>
+        <button
+          className="btn-show-output"
+          onClick={handleShowOutput}
+          disabled={loading}
+        >
           {loading ? "Loading..." : "Show Output"}
         </button>
       </div>
@@ -67,7 +105,7 @@ def mersenne_primes_in_range(start=2201, end=2299):
           <div className="output-wrap">
             <p>Mersenne Primes:</p>
             <ul>
-              {output.mersenne_primes.map((item, index) => (
+              {(output.mersenne_primes || []).map((item, index) => (
                 <li key={index}>
                   p = {item.p}, 2^p - 1 = {item.mersenne_number}
                 </li>
@@ -88,7 +126,7 @@ def mersenne_primes_in_range(start=2201, end=2299):
         </button>
       </div>
 
-      {/* Styles */}
+      {/* Styles (unchanged) */}
       <style jsx="true">{`
         .question-box, .code-box, .output-box {
           border-radius: 25px;

@@ -4,6 +4,7 @@ import axios from "axios";
 import { ArrowRight, ArrowLeft } from "react-bootstrap-icons";
 
 const Q6 = () => {
+  const [pValues, setPValues] = useState("2203,2281"); // allow user input if needed
   const [output, setOutput] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -21,15 +22,10 @@ Using the primes in #3, prove that the above expression yields a perfect number.
   const pythonCode = `
 from gmpy2 import mpz
 
-def perfect_numbers():
-    mersennes = [
-        {"p": 2203, "mersenne_number": str(mpz(2)**2203 - 1)},
-        {"p": 2281, "mersenne_number": str(mpz(2)**2281 - 1)}
-    ]
+def perfect_numbers(p_values=[2203, 2281]):
     perfect_numbers = []
-    for item in mersennes:
-        p = item["p"]
-        M_p = mpz(item["mersenne_number"])
+    for p in p_values:
+        M_p = mpz(2)**p - 1
         N = (1 << (p - 1)) * M_p
         perfect_numbers.append({"p": p, "perfect_number": str(N)})
     return perfect_numbers
@@ -39,7 +35,13 @@ def perfect_numbers():
     setLoading(true);
     setOutput(null);
     try {
-      const res = await axios.get("http://localhost:5001/q6");
+      const pArray = pValues.split(",").map((v) => Number(v.trim()));
+      const res = await axios.get("http://localhost:5001/q6", {
+        params: { p: pArray }, // pArray = [2, 23]
+        paramsSerializer: (params) => {
+          return params.p.map((p) => `p=${p}`).join("&");
+        },
+      });
       setOutput(res.data);
     } catch (err) {
       console.error(err);
@@ -56,13 +58,28 @@ def perfect_numbers():
 
       {/* Python Code */}
       <div className="code-box p-3 mb-4">
-        <h5 className="mb-2">Python Code </h5>
+        <h5 className="mb-2">Python Code</h5>
         <pre>{pythonCode}</pre>
+      </div>
+
+      {/* Optional input for primes */}
+      <div className="text-center mb-3">
+        <label className="fw-bold me-2">Primes (comma separated):</label>
+        <input
+          type="text"
+          value={pValues}
+          onChange={(e) => setPValues(e.target.value)}
+          className="form-control d-inline-block w-auto"
+        />
       </div>
 
       {/* Show Output Button */}
       <div className="text-center mb-4">
-        <button className="btn-show-output" onClick={handleShowOutput} disabled={loading}>
+        <button
+          className="btn-show-output"
+          onClick={handleShowOutput}
+          disabled={loading}
+        >
           {loading ? "Loading..." : "Show Output"}
         </button>
       </div>
@@ -95,9 +112,11 @@ def perfect_numbers():
         </button>
       </div>
 
-      {/* Styles */}
+      {/* Styles unchanged */}
       <style jsx="true">{`
-        .question-box, .code-box, .output-box {
+        .question-box,
+        .code-box,
+        .output-box {
           border-radius: 25px;
           background: linear-gradient(135deg, #e0f7fa, #ffffff);
           box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);

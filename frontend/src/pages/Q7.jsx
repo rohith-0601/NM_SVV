@@ -4,45 +4,54 @@ import axios from "axios";
 import { House, ArrowLeft } from "react-bootstrap-icons";
 
 export const Q7 = () => {
+  const [N, setN] = useState("");
   const [output, setOutput] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const questionText = `
 7. Goldbach's Conjecture: Every even number greater than 2 is the sum of two primes. 
-Check this for numbers greater than 50 digits: 
-N1 = 10^49 + 12, N2 = 10^50 + 88.
+Provide an even number greater than 2 (preferably > 50 digits) to check.
 `;
 
   const pythonCode = `
 from sympy import isprime, nextprime
 
-def goldbach_pairs():
-    def goldbach_pair(N: int):
-        assert N % 2 == 0 and N > 2
-        p = 2
-        while p <= N // 2:
-            q = N - p
-            if isprime(p) and isprime(q):
-                return p, q
-            p = nextprime(p)
-        return None
-
-    N1 = 10 ** 49 + 12
-    N2 = 10 ** 50 + 88
-    pair1 = goldbach_pair(N1)
-    pair2 = goldbach_pair(N2)
-    return {"numbers": [N1, N2], "pairs": [pair1, pair2]}
+def goldbach_pair(N: int):
+    assert N % 2 == 0 and N > 2
+    p = 2
+    while p <= N // 2:
+        q = N - p
+        if isprime(p) and isprime(q):
+            return p, q
+        p = nextprime(p)
+    return None
 `;
 
   const handleShowOutput = async () => {
-    setLoading(true);
+    setError("");
     setOutput(null);
+
+    if (!N) {
+      setError("Please enter a number.");
+      return;
+    }
+    if (BigInt(N) % 2n !== 0n || BigInt(N) <= 2n) {
+      setError("Number must be even and greater than 2.");
+      return;
+    }
+
+    setLoading(true);
     try {
-      const res = await axios.get("http://localhost:5001/q7");
+      // Send N as a simple parameter
+      const res = await axios.get("http://localhost:5001/q7", { params: { N } });
+      
+      // Backend should return { number: "4", pair: ["2","2"], runtime_seconds: 0.0001 }
       setOutput(res.data);
     } catch (err) {
       console.error(err);
+      setError("Server error. Please try again.");
     }
     setLoading(false);
   };
@@ -51,41 +60,52 @@ def goldbach_pairs():
     <div className="container my-5">
       <h2 className="text-center mb-4 fw-bold">Q7: Goldbach's Conjecture</h2>
 
-      {/* Question */}
       <div className="question-box p-4 mb-4">{questionText}</div>
 
-      {/* Python Code */}
       <div className="code-box p-3 mb-4">
-        <h5 className="mb-2">Python Code </h5>
+        <h5 className="mb-2">Python Code</h5>
         <pre>{pythonCode}</pre>
       </div>
 
-      {/* Show Output Button */}
+      <div className="text-center mb-3">
+        <label className="fw-bold me-2">Number:</label>
+        <input
+          type="text"
+          value={N}
+          onChange={(e) => setN(e.target.value.trim())}
+          className="form-control d-inline-block w-auto"
+          placeholder="Enter an even number"
+        />
+      </div>
+
+      {error && <p className="text-danger text-center">{error}</p>}
+
       <div className="text-center mb-4">
-        <button className="btn-show-output" onClick={handleShowOutput} disabled={loading}>
+        <button
+          className="btn-show-output"
+          onClick={handleShowOutput}
+          disabled={loading}
+        >
           {loading ? "Loading..." : "Show Output"}
         </button>
       </div>
 
-      {/* Output */}
       <div className="output-box p-3 mb-4">
-        {!output && !loading && <p>Click "Show Output" to fetch the result.</p>}
+        {!output && !loading && <p>Enter a number and click "Show Output".</p>}
         {output && (
           <div>
-            <p>Numbers:</p>
-            <ul>
-              {output.numbers.map((num, idx) => (
-                <li key={idx}>
-                  {num} = {output.pairs[idx][0]} + {output.pairs[idx][1]}
-                </li>
-              ))}
-            </ul>
+            <p>Number and Goldbach pair:</p>
+            <p>
+              {output.number} ={" "}
+              {output.pair && output.pair.length === 2
+                ? `${output.pair[0]} + ${output.pair[1]}`
+                : "No pair found"}
+            </p>
             <p>Runtime: {output.runtime_seconds}s</p>
           </div>
         )}
       </div>
 
-      {/* Navigation Buttons */}
       <div className="d-flex justify-content-between mt-4">
         <button className="btn-nav" onClick={() => navigate("/q6")}>
           <ArrowLeft /> Prev
@@ -95,7 +115,6 @@ def goldbach_pairs():
         </button>
       </div>
 
-      {/* Styles */}
       <style jsx="true">{`
         .question-box, .code-box, .output-box {
           border-radius: 25px;
